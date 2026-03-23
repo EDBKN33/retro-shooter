@@ -18,7 +18,7 @@ load_dotenv()
 
 # Attempt Gemini import — optional dependency
 try:
-    import google.generativeai as genai
+    from google import genai as google_genai
     GEMINI_AVAILABLE = True
 except ImportError:
     GEMINI_AVAILABLE = False
@@ -52,11 +52,11 @@ def _perplexity_client() -> openai.AsyncOpenAI:
     )
 
 
-def _configure_gemini() -> None:
+def _get_gemini_client():
     key = os.getenv("GEMINI_API_KEY")
     if not key:
         raise EnvironmentError("GEMINI_API_KEY not set in .env")
-    genai.configure(api_key=key)
+    return google_genai.Client(api_key=key)
 
 
 # ─────────────────────────────────────────────
@@ -108,7 +108,7 @@ async def call_gpt4o(
 async def call_gemini(
     system_prompt: str,
     user_message: str,
-    model: str = "gemini-1.5-pro",
+    model: str = "gemini-2.5-flash",
     max_tokens: int = 2000,
 ) -> str:
     """
@@ -119,14 +119,19 @@ async def call_gemini(
         return "ERROR: Gemini failed — google-generativeai not installed. Run: pip3 install google-generativeai"
 
     def _sync_call() -> str:
-        _configure_gemini()
-        m = genai.GenerativeModel(
-            model_name=model,
-            system_instruction=system_prompt,
-            generation_config=genai.GenerationConfig(max_output_tokens=max_tokens),
+        client = _get_gemini_client()
+        result = client.models.generate_content(
+            model=model,
+            contents=f"{system_prompt}\n\n{user_message}",
+            config=google_genai.types.GenerateContentConfig(
+                max_output_tokens=max_tokens,
+            ),
         )
-        result = m.generate_content(user_message)
-        return result.text
+        # result.text has a known SDK bug — extract via model_dump instead
+        d = result.model_dump()
+        parts = d.get("candidates", [{}])[0].get("content", {}).get("parts", []) or []
+        text_parts = [p["text"] for p in parts if p.get("text") and not p.get("thought")]
+        return " ".join(text_parts) if text_parts else ""
 
     try:
         return await asyncio.to_thread(_sync_call)
@@ -137,7 +142,7 @@ async def call_gemini(
 async def call_perplexity(
     system_prompt: str,
     user_message: str,
-    model: str = "llama-3.1-sonar-large-128k-online",
+    model: str = "sonar-pro",
     max_tokens: int = 2000,
 ) -> str:
     """
