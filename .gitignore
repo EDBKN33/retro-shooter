@@ -1,4 +1,4 @@
-.claude/
+.claude/settings.local.json
 *.log
 node_modules/
 .DS_Store
