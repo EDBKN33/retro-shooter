@@ -63,6 +63,7 @@ Claude skills live in `.claude/skills/`. Each skill has a `SKILL.md` (intent + u
 
 | Skill | Description |
 |-------|-------------|
+| `product-council` | Convene 4 AIs (Claude, GPT-4o, Gemini, Perplexity) to deliberate and reach consensus on research, PRDs, competitive analysis, transcripts, and recommendations |
 | `add-webhook` | Add new Modal webhooks for event-driven execution |
 | `casualize-names` | Convert formal names to casual versions for cold email personalization |
 | `classify-leads` | Classify leads using LLM for complex distinctions (SaaS vs agency, etc.) |
@@ -89,6 +90,35 @@ Claude skills live in `.claude/skills/`. Each skill has a `SKILL.md` (intent + u
 | `video-edit` | Edit talking-head videos: remove silences with neural VAD, add 3D swivel transitions |
 | `welcome-email` | Send welcome email sequence to new clients |
 | `youtube-outliers` | Find viral YouTube videos in a niche for competitive intelligence |
+
+### ProductCouncil (Primary AI Assistant)
+
+The `product-council` skill is the main ProductAssistant for all analytical and product work. It convenes Claude, GPT-4o, Gemini, and Perplexity in a structured deliberation — each AI challenges the others until ≥80/100 consensus is reached.
+
+**Supported tasks:** research Q&A · transcript/document analysis · PRD generation · competitive analysis · strategic recommendations
+
+**Anti-hallucination:** Perplexity provides real-time web citations; all AIs declare confidence levels; disputed claims are marked `[DISPUTED:]` in output.
+
+**Output:** `./output/council/[timestamp]-[task].md` + PDF
+
+**Run it:**
+```bash
+# Research
+python3 .claude/skills/product-council/scripts/council.py research \
+  --query "Your question here"
+
+# Analyze a transcript
+python3 .claude/skills/product-council/scripts/council.py analyze \
+  --file ./transcript.txt --query "Key decisions and action items?"
+
+# PRD, competitive analysis, or recommendations
+python3 .claude/skills/product-council/scripts/council.py prd --query "..."
+python3 .claude/skills/product-council/scripts/council.py competitive --query "..."
+python3 .claude/skills/product-council/scripts/council.py recommend --query "..."
+```
+
+**Required:** `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `PERPLEXITY_API_KEY` in `.env`
+**Install:** `pip3 install anthropic openai google-generativeai python-dotenv reportlab`
 
 ### Subagents
 
